@@ -15,7 +15,7 @@ export const doctors: Doctor[] = [
   {
     id: "doctor-1",
     name: "Sarah Johnson",
-    photo: "https://media.istockphoto.com/id/1371998919/photo/cropped-portrait-of-an-attractive-young-female-doctor-giving-thumbs-up-while-working-in-her.jpg?s=612x612&w=0&k=20&c=5oPD2p5gc7ZQjgyjPAJui9eOGKF8sK_GG6MJpYXmA7s=",
+    photo: "/placeholder.svg?height=400&width=400",
     specialty: "Cardiology",
     rating: 4.8,
     location: "Downtown Medical Center",
@@ -29,7 +29,7 @@ export const doctors: Doctor[] = [
   {
     id: "doctor-2",
     name: "Michael Chen",
-    photo: "https://t4.ftcdn.net/jpg/02/60/04/09/360_F_260040900_oO6YW1sHTnKxby4GcjCvtypUCWjnQRg5.jpg",
+    photo: "/placeholder.svg?height=400&width=400",
     specialty: "Dermatology",
     rating: 4.9,
     location: "Westside Health Clinic",
@@ -42,7 +42,7 @@ export const doctors: Doctor[] = [
   {
     id: "doctor-3",
     name: "Emily Rodriguez",
-    photo: "https://img.freepik.com/free-photo/woman-doctor-wearing-lab-coat-with-stethoscope-isolated_1303-29791.jpg?semt=ais_hybrid&w=740",
+    photo: "/placeholder.svg?height=400&width=400",
     specialty: "Pediatrics",
     rating: 4.7,
     location: "Children's Medical Center",

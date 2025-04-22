@@ -50,7 +50,7 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm }: Boo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Book an Appointment</DialogTitle>
         </DialogHeader>
@@ -65,30 +65,28 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm }: Boo
           </div>
         </div>
 
-        <div className="flex flex-col space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="text-sm font-medium mb-2 flex items-center">
               <CalendarIcon className="h-4 w-4 mr-1" />
               Select Date
             </h4>
-            <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="border rounded-md max-w-full scale-[0.85] sm:scale-100 origin-top"
-                disabled={(date) => {
-                  // Disable dates in the past
-                  const today = new Date()
-                  today.setHours(0, 0, 0, 0)
-                  if (date < today) return true
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              className="border rounded-md"
+              disabled={(date) => {
+                // Disable dates in the past
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                if (date < today) return true
 
-                  // Disable dates with no available slots
-                  const dayName = format(date, "EEEE")
-                  return !slotsByDay[dayName] || slotsByDay[dayName].length === 0
-                }}
-              />
-            </div>
+                // Disable dates with no available slots
+                const dayName = format(date, "EEEE")
+                return !slotsByDay[dayName] || slotsByDay[dayName].length === 0
+              }}
+            />
           </div>
 
           <div>
@@ -97,7 +95,7 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm }: Boo
               Available Time Slots
             </h4>
             {availableSlots.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {availableSlots.map((slot, index) => (
                   <button
                     key={index}
@@ -113,7 +111,7 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm }: Boo
                 ))}
               </div>
             ) : (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center h-full">
                 <p className="text-gray-500 text-sm">
                   {date ? "No available slots for this date" : "Please select a date"}
                 </p>
