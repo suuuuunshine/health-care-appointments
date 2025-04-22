@@ -29,7 +29,6 @@ A modern, responsive web application for booking healthcare appointments with do
    ```bash
    git clone https://github.com/yourusername/healthcare-appointment-ui.git
    cd healthcare-appointment-ui
-   2. Install dependencies:
 
 2. Install dependencies:
 ```shellscript
