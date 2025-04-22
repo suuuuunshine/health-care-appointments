@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import type { Doctor, TimeSlot } from "@/lib/types"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
-import { CalendarIcon, Clock } from "lucide-react"
+import { CalendarIcon, Clock, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { useAppointments } from "@/hooks/use-appointments"
 
@@ -21,7 +21,11 @@ interface BookingModalProps {
 export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSelectedTimeSlot }: BookingModalProps) {
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
-  const { isTimeSlotBooked } = useAppointments()
+  const [error, setError] = useState<string | null>(null)
+  const { isTimeSlotBooked, getDoctorAvailability } = useAppointments()
+
+  // Get all available slots for this doctor
+  const availableSlots = getDoctorAvailability(doctor)
 
   // Group available slots by day
   const slotsByDay = doctor.availableSlots.reduce(
@@ -84,20 +88,31 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
   useEffect(() => {
     if (!isOpen) {
       setSelectedSlot(null)
+      setError(null)
     } else {
       // When modal opens, find the next available date
       if (preSelectedTimeSlot) {
-        // If a time slot is pre-selected, find the next occurrence of that day
-        const nextDate = findNextAvailableDate(new Date(), preSelectedTimeSlot.day)
-        setDate(nextDate)
-        setSelectedSlot(preSelectedTimeSlot)
+        // Check if the pre-selected time slot is still available
+        const isSlotAvailable = !isTimeSlotBooked(doctor, preSelectedTimeSlot)
+
+        if (isSlotAvailable) {
+          // If a time slot is pre-selected and available, find the next occurrence of that day
+          const nextDate = findNextAvailableDate(new Date(), preSelectedTimeSlot.day)
+          setDate(nextDate)
+          setSelectedSlot(preSelectedTimeSlot)
+        } else {
+          // If pre-selected slot is no longer available, find any next available date
+          const nextDate = findNextAvailableDate()
+          setDate(nextDate)
+          setError("The selected time slot is no longer available. Please choose another slot.")
+        }
       } else {
         // Otherwise, find the next day with any available slot
         const nextDate = findNextAvailableDate()
         setDate(nextDate)
       }
     }
-  }, [isOpen, preSelectedTimeSlot, doctor.id])
+  }, [isOpen, preSelectedTimeSlot, doctor])
 
   // Get available slots for the selected date
   const getAvailableSlotsForDate = () => {
@@ -110,13 +125,24 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
     return slotsForDay.filter((slot) => !isTimeSlotBooked(doctor, slot))
   }
 
-  const availableSlots = getAvailableSlotsForDate()
+  const slotsForSelectedDate = getAvailableSlotsForDate()
 
   const handleConfirm = () => {
     if (selectedSlot) {
-      onConfirm(selectedSlot)
+      // Double-check that the slot is still available
+      if (!isTimeSlotBooked(doctor, selectedSlot)) {
+        onConfirm(selectedSlot)
+        setError(null)
+      } else {
+        setError("This time slot was just booked. Please select another slot.")
+        // Refresh available slots
+        setSelectedSlot(null)
+      }
     }
   }
+
+  // Check if there are any available slots at all
+  const hasAnyAvailableSlots = availableSlots.length > 0
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -135,6 +161,22 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
           </div>
         </div>
 
+        {!hasAnyAvailableSlots ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
+              <p className="text-amber-800">This doctor has no available slots. All appointments have been booked.</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
+              <p className="text-amber-800">{error}</p>
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="text-sm font-medium mb-2 flex items-center">
@@ -147,6 +189,7 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
               onSelect={(newDate) => {
                 setDate(newDate)
                 setSelectedSlot(null) // Reset selected slot when date changes
+                setError(null) // Clear any errors
               }}
               className="border rounded-md content-center"
               disabled={(date) => {
@@ -173,9 +216,9 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
               <Clock className="h-4 w-4 mr-1" />
               Available Time Slots
             </h4>
-            {availableSlots.length > 0 ? (
+            {slotsForSelectedDate.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
-                {availableSlots.map((slot, index) => (
+                {slotsForSelectedDate.map((slot, index) => (
                   <button
                     key={index}
                     className={`p-2 text-sm rounded-md border transition-colors ${
@@ -183,7 +226,10 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
                         ? "bg-teal-100 border-teal-300 text-teal-700"
                         : "border-gray-200 hover:border-teal-200"
                     }`}
-                    onClick={() => setSelectedSlot(slot)}
+                    onClick={() => {
+                      setSelectedSlot(slot)
+                      setError(null) // Clear any errors when selecting a new slot
+                    }}
                   >
                     {slot.time}
                   </button>
@@ -203,7 +249,11 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
           <Button variant="outline" onClick={onClose} className="mr-2">
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={!selectedSlot} className="bg-teal-500 hover:bg-teal-600 text-white">
+          <Button
+            onClick={handleConfirm}
+            disabled={!selectedSlot || !hasAnyAvailableSlots}
+            className="bg-teal-500 hover:bg-teal-600 text-white"
+          >
             Confirm Booking
           </Button>
         </DialogFooter>

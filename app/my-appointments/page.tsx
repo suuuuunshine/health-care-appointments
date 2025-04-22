@@ -1,12 +1,36 @@
 "use client"
 
+import { useState } from "react"
 import { useAppointments } from "@/hooks/use-appointments"
 import AppointmentCard from "@/components/appointment-card"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/components/ui/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function MyAppointments() {
   const { appointments, cancelAppointment } = useAppointments()
+  const { toast } = useToast()
+  const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null)
+
+  const handleCancelAppointment = (id: string) => {
+    cancelAppointment(id)
+    setAppointmentToCancel(null)
+
+    toast({
+      title: "Appointment Cancelled",
+      description: "Your appointment has been successfully cancelled.",
+    })
+  }
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -38,11 +62,28 @@ export default function MyAppointments() {
             <AppointmentCard
               key={appointment.id}
               appointment={appointment}
-              onCancel={() => cancelAppointment(appointment.id)}
+              onCancel={() => setAppointmentToCancel(appointment.id)}
             />
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!appointmentToCancel} onOpenChange={() => setAppointmentToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this appointment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, keep it</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleCancelAppointment(appointmentToCancel!)}>
+              Yes, cancel appointment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }

@@ -9,6 +9,7 @@ import type { Doctor, TimeSlot } from "@/lib/types"
 import { useAppointments } from "@/hooks/use-appointments"
 import Link from "next/link"
 import { CalendarCheck2 } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function Home() {
   const [specialty, setSpecialty] = useState<string>("all")
@@ -16,9 +17,20 @@ export default function Home() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | undefined>(undefined)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const { addAppointment, isTimeSlotBooked } = useAppointments()
+  const { addAppointment, hasAvailableSlots } = useAppointments()
+  const { toast } = useToast()
 
   const handleBooking = (doctor: Doctor, timeSlot?: TimeSlot) => {
+    // Check if doctor has any available slots before opening modal
+    if (!hasAvailableSlots(doctor)) {
+      toast({
+        title: "No Available Slots",
+        description: "This doctor has no available appointment slots.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSelectedDoctor(doctor)
     setSelectedTimeSlot(timeSlot)
     setIsModalOpen(true)
@@ -26,22 +38,38 @@ export default function Home() {
 
   const handleConfirmBooking = (timeSlot: TimeSlot) => {
     if (selectedDoctor) {
-      addAppointment({
+      const appointment = {
         id: `appointment-${Date.now()}`,
         doctor: selectedDoctor,
         timeSlot,
         date: new Date(),
-      })
+      }
+
+      const success = addAppointment(appointment)
+
+      if (success) {
+        toast({
+          title: "Appointment Booked",
+          description: `Your appointment with Dr. ${selectedDoctor.name} on ${timeSlot.day} at ${timeSlot.time} has been confirmed.`,
+        })
+      } else {
+        toast({
+          title: "Booking Failed",
+          description: "This time slot is no longer available. Please try another slot.",
+          variant: "destructive",
+        })
+      }
+
       setIsModalOpen(false)
     }
   }
 
   const filteredDoctors = doctors.filter((doctor) => {
     // Check if doctor has any available slots after considering booked appointments
-    const hasAvailableSlots = doctor.availableSlots.some((slot) => !isTimeSlotBooked(doctor, slot))
+    const doctorHasAvailability = hasAvailableSlots(doctor)
 
     const matchesSpecialty = specialty === "all" || doctor.specialty === specialty
-    const matchesAvailability = availability === "all" || (availability === "available" && hasAvailableSlots)
+    const matchesAvailability = availability === "all" || (availability === "available" && doctorHasAvailability)
     return matchesSpecialty && matchesAvailability
   })
 

@@ -14,10 +14,13 @@ interface DoctorCardProps {
 
 export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProps) {
   const { name, photo, specialty, rating, location, availableSlots } = doctor
-  const { isTimeSlotBooked } = useAppointments()
+  const { getDoctorAvailability, hasAvailableSlots } = useAppointments()
 
-  // Filter out already booked slots
-  const availableSlotsAfterBookings = availableSlots.filter((slot) => !isTimeSlotBooked(doctor, slot))
+  // Get available slots after filtering out booked ones
+  const availableSlotsAfterBookings = getDoctorAvailability(doctor)
+
+  // Check if this doctor has any available slots
+  const doctorHasAvailability = hasAvailableSlots(doctor)
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg">
@@ -76,9 +79,9 @@ export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProp
         <Button
           onClick={() => onBookAppointment()}
           className="w-full bg-teal-500 hover:bg-teal-600 text-white"
-          disabled={doctor.availableSlots.length === 0}
+          disabled={!doctorHasAvailability}
         >
-          {doctor.availableSlots.length > 0 ? "Book Appointment" : "Currently Unavailable"}
+          {doctorHasAvailability ? "Book Appointment" : "Currently Unavailable"}
         </Button>
       </CardFooter>
     </Card>

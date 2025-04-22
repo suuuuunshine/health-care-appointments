@@ -8,6 +8,8 @@ interface AppointmentsContextType {
   addAppointment: (appointment: Appointment) => void
   cancelAppointment: (id: string) => void
   isTimeSlotBooked: (doctor: Doctor, timeSlot: TimeSlot) => boolean
+  getDoctorAvailability: (doctor: Doctor) => TimeSlot[]
+  hasAvailableSlots: (doctor: Doctor) => boolean
 }
 
 const AppointmentsContext = createContext<AppointmentsContextType | undefined>(undefined)
@@ -39,7 +41,15 @@ export function AppointmentsProvider({ children }: { children: ReactNode }) {
   }, [appointments])
 
   const addAppointment = (appointment: Appointment) => {
+    // Verify this slot isn't already booked before adding
+    const isBooked = isTimeSlotBooked(appointment.doctor, appointment.timeSlot)
+    if (isBooked) {
+      console.error("This time slot is already booked")
+      return false
+    }
+
     setAppointments((prev) => [...prev, appointment])
+    return true
   }
 
   const cancelAppointment = (id: string) => {
@@ -53,8 +63,27 @@ export function AppointmentsProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  // Get all available slots for a doctor after filtering out booked ones
+  const getDoctorAvailability = (doctor: Doctor) => {
+    return doctor.availableSlots.filter((slot) => !isTimeSlotBooked(doctor, slot))
+  }
+
+  // Check if a doctor has any available slots at all
+  const hasAvailableSlots = (doctor: Doctor) => {
+    return doctor.availableSlots.some((slot) => !isTimeSlotBooked(doctor, slot))
+  }
+
   return (
-    <AppointmentsContext.Provider value={{ appointments, addAppointment, cancelAppointment, isTimeSlotBooked }}>
+    <AppointmentsContext.Provider
+      value={{
+        appointments,
+        addAppointment,
+        cancelAppointment,
+        isTimeSlotBooked,
+        getDoctorAvailability,
+        hasAvailableSlots,
+      }}
+    >
       {children}
     </AppointmentsContext.Provider>
   )
