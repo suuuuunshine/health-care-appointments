@@ -15,8 +15,8 @@ export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProp
   const { name, photo, specialty, rating, location, availableSlots } = doctor
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-lg">
-      <div className="relative h-48 w-full bg-gray-100">
+    <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg ">
+      <div className="relative h-64 w-full bg-gray-100">
         <Image
           src={photo || "/placeholder.svg"}
           alt={`Dr. ${name}`}
@@ -25,7 +25,7 @@ export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProp
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
       </div>
-      <CardContent className="pt-6">
+      <CardContent className="pt-6 flex-1">
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">Dr. {name}</h2>
