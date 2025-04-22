@@ -76,9 +76,9 @@ export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProp
         <Button
           onClick={() => onBookAppointment()}
           className="w-full bg-teal-500 hover:bg-teal-600 text-white"
-          disabled={availableSlotsAfterBookings.length === 0}
+          disabled={doctor.availableSlots.length === 0}
         >
-          {availableSlotsAfterBookings.length > 0 ? "Book Appointment" : "Currently Unavailable"}
+          {doctor.availableSlots.length > 0 ? "Book Appointment" : "Currently Unavailable"}
         </Button>
       </CardFooter>
     </Card>
