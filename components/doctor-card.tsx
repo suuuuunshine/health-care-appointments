@@ -1,21 +1,26 @@
 "use client"
 
-import type { Doctor } from "@/lib/types"
+import type { Doctor, TimeSlot } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { MapPin, Star } from "lucide-react"
 import Image from "next/image"
+import { useAppointments } from "@/hooks/use-appointments"
 
 interface DoctorCardProps {
   doctor: Doctor
-  onBookAppointment: () => void
+  onBookAppointment: (timeSlot?: TimeSlot) => void
 }
 
 export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProps) {
   const { name, photo, specialty, rating, location, availableSlots } = doctor
+  const { isTimeSlotBooked } = useAppointments()
+
+  // Filter out already booked slots
+  const availableSlotsAfterBookings = availableSlots.filter((slot) => !isTimeSlotBooked(doctor, slot))
 
   return (
-    <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg ">
+    <Card className="flex flex-col overflow-hidden transition-all hover:shadow-lg">
       <div className="relative h-64 w-full bg-gray-100">
         <Image
           src={photo || "/placeholder.svg"}
@@ -44,15 +49,22 @@ export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProp
 
         <div className="mt-4">
           <p className="text-sm font-medium text-gray-700">Availability:</p>
-          {availableSlots.length > 0 ? (
+          {availableSlotsAfterBookings.length > 0 ? (
             <div className="flex flex-wrap gap-2 mt-2">
-              {availableSlots.slice(0, 3).map((slot, index) => (
-                <span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md">
+              {availableSlotsAfterBookings.slice(0, 3).map((slot, index) => (
+                <button
+                  key={index}
+                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onBookAppointment(slot)
+                  }}
+                >
                   {slot.day}, {slot.time}
-                </span>
+                </button>
               ))}
-              {availableSlots.length > 3 && (
-                <span className="text-xs text-gray-500">+{availableSlots.length - 3} more</span>
+              {availableSlotsAfterBookings.length > 3 && (
+                <span className="text-xs text-gray-500">+{availableSlotsAfterBookings.length - 3} more</span>
               )}
             </div>
           ) : (
@@ -62,11 +74,11 @@ export default function DoctorCard({ doctor, onBookAppointment }: DoctorCardProp
       </CardContent>
       <CardFooter className="pt-2 pb-6">
         <Button
-          onClick={onBookAppointment}
+          onClick={() => onBookAppointment()}
           className="w-full bg-teal-500 hover:bg-teal-600 text-white"
-          disabled={availableSlots.length === 0}
+          disabled={availableSlotsAfterBookings.length === 0}
         >
-          {availableSlots.length > 0 ? "Book Appointment" : "Currently Unavailable"}
+          {availableSlotsAfterBookings.length > 0 ? "Book Appointment" : "Currently Unavailable"}
         </Button>
       </CardFooter>
     </Card>

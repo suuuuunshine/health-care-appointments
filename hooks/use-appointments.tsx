@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
-import type { Appointment } from "@/lib/types"
+import type { Appointment, TimeSlot, Doctor } from "@/lib/types"
 
 interface AppointmentsContextType {
   appointments: Appointment[]
   addAppointment: (appointment: Appointment) => void
   cancelAppointment: (id: string) => void
+  isTimeSlotBooked: (doctor: Doctor, timeSlot: TimeSlot) => boolean
 }
 
 const AppointmentsContext = createContext<AppointmentsContextType | undefined>(undefined)
@@ -45,8 +46,15 @@ export function AppointmentsProvider({ children }: { children: ReactNode }) {
     setAppointments((prev) => prev.filter((app) => app.id !== id))
   }
 
+  // Check if a time slot is already booked - only checking day and time, not specific date
+  const isTimeSlotBooked = (doctor: Doctor, timeSlot: TimeSlot) => {
+    return appointments.some(
+      (app) => app.doctor.id === doctor.id && app.timeSlot.day === timeSlot.day && app.timeSlot.time === timeSlot.time,
+    )
+  }
+
   return (
-    <AppointmentsContext.Provider value={{ appointments, addAppointment, cancelAppointment }}>
+    <AppointmentsContext.Provider value={{ appointments, addAppointment, cancelAppointment, isTimeSlotBooked }}>
       {children}
     </AppointmentsContext.Provider>
   )

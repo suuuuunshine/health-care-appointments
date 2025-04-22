@@ -14,11 +14,13 @@ export default function Home() {
   const [specialty, setSpecialty] = useState<string>("all")
   const [availability, setAvailability] = useState<string>("all")
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | undefined>(undefined)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const { addAppointment } = useAppointments()
+  const { addAppointment, isTimeSlotBooked } = useAppointments()
 
-  const handleBooking = (doctor: Doctor) => {
+  const handleBooking = (doctor: Doctor, timeSlot?: TimeSlot) => {
     setSelectedDoctor(doctor)
+    setSelectedTimeSlot(timeSlot)
     setIsModalOpen(true)
   }
 
@@ -35,9 +37,11 @@ export default function Home() {
   }
 
   const filteredDoctors = doctors.filter((doctor) => {
+    // Check if doctor has any available slots after considering booked appointments
+    const hasAvailableSlots = doctor.availableSlots.some((slot) => !isTimeSlotBooked(doctor, slot))
+
     const matchesSpecialty = specialty === "all" || doctor.specialty === specialty
-    const matchesAvailability =
-      availability === "all" || (availability === "available" && doctor.availableSlots.length > 0)
+    const matchesAvailability = availability === "all" || (availability === "available" && hasAvailableSlots)
     return matchesSpecialty && matchesAvailability
   })
 
@@ -73,7 +77,11 @@ export default function Home() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
           {filteredDoctors.map((doctor) => (
-            <DoctorCard key={doctor.id} doctor={doctor} onBookAppointment={() => handleBooking(doctor)} />
+            <DoctorCard
+              key={doctor.id}
+              doctor={doctor}
+              onBookAppointment={(timeSlot) => handleBooking(doctor, timeSlot)}
+            />
           ))}
         </div>
       )}
@@ -81,9 +89,13 @@ export default function Home() {
       {selectedDoctor && (
         <BookingModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false)
+            setSelectedTimeSlot(undefined)
+          }}
           doctor={selectedDoctor}
           onConfirm={handleConfirmBooking}
+          preSelectedTimeSlot={selectedTimeSlot}
         />
       )}
     </main>
