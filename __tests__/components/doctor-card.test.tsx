@@ -16,9 +16,9 @@ describe("DoctorCard", () => {
     specialty: "Cardiology",
     rating: 4.8,
     location: "Downtown Medical Center",
-    availableSlots: [
-      { day: "Monday", time: "9:00 AM" },
-      { day: "Wednesday", time: "2:00 PM" },
+    availability: [
+      { date: "2025-04-21", slots: ["09:00", "11:30"] },
+      { date: "2025-04-23", slots: ["14:00"] },
     ],
   }
 
@@ -26,8 +26,12 @@ describe("DoctorCard", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(useAppointments as jest.Mock).mockReturnValue({
-      isTimeSlotBooked: () => false,
+    ;(useAppointments as vi.Mock).mockReturnValue({
+      getDoctorAvailability: () => [
+        { date: "2025-04-21", slots: ["09:00", "11:30"] },
+        { date: "2025-04-23", slots: ["14:00"] },
+      ],
+      hasAvailableSlots: () => true,
     })
   })
 
@@ -43,8 +47,9 @@ describe("DoctorCard", () => {
   it("displays available slots", () => {
     render(<DoctorCard doctor={mockDoctor} onBookAppointment={mockOnBookAppointment} />)
 
-    expect(screen.getByText("Monday, 9:00 AM")).toBeInTheDocument()
-    expect(screen.getByText("Wednesday, 2:00 PM")).toBeInTheDocument()
+    expect(screen.getByText("Apr 21, 2025")).toBeInTheDocument()
+    expect(screen.getByText("09:00")).toBeInTheDocument()
+    expect(screen.getByText("11:30")).toBeInTheDocument()
   })
 
   it("calls onBookAppointment when Book Appointment button is clicked", () => {
@@ -52,33 +57,26 @@ describe("DoctorCard", () => {
 
     fireEvent.click(screen.getByText("Book Appointment"))
     expect(mockOnBookAppointment).toHaveBeenCalledTimes(1)
-    expect(mockOnBookAppointment).toHaveBeenCalledWith()
+    expect(mockOnBookAppointment).toHaveBeenCalledWith(undefined, undefined)
   })
 
-  it("calls onBookAppointment with time slot when a slot is clicked", () => {
+  it("calls onBookAppointment with date and time when a slot is clicked", () => {
     render(<DoctorCard doctor={mockDoctor} onBookAppointment={mockOnBookAppointment} />)
 
-    fireEvent.click(screen.getByText("Monday, 9:00 AM"))
+    fireEvent.click(screen.getByText("09:00"))
     expect(mockOnBookAppointment).toHaveBeenCalledTimes(1)
-    expect(mockOnBookAppointment).toHaveBeenCalledWith(mockDoctor.availableSlots[0])
+    expect(mockOnBookAppointment).toHaveBeenCalledWith("2025-04-21", "09:00")
   })
 
   it("disables Book Appointment button when no slots are available", () => {
-    const doctorWithNoSlots = { ...mockDoctor, availableSlots: [] }
-    render(<DoctorCard doctor={doctorWithNoSlots} onBookAppointment={mockOnBookAppointment} />)
-
-    expect(screen.getByText("Currently Unavailable")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Currently Unavailable" })).toBeDisabled()
-  })
-
-  it("filters out booked slots", () => {
-    ;(useAppointments as jest.Mock).mockReturnValue({
-      isTimeSlotBooked: (doctor: any, slot: any) => slot.day === "Monday",
+    ;(useAppointments as vi.Mock).mockReturnValue({
+      getDoctorAvailability: () => [],
+      hasAvailableSlots: () => false,
     })
 
     render(<DoctorCard doctor={mockDoctor} onBookAppointment={mockOnBookAppointment} />)
 
-    expect(screen.queryByText("Monday, 9:00 AM")).not.toBeInTheDocument()
-    expect(screen.getByText("Wednesday, 2:00 PM")).toBeInTheDocument()
+    expect(screen.getByText("Currently Unavailable")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Currently Unavailable" })).toBeDisabled()
   })
 })

@@ -1,15 +1,16 @@
 "use client"
 
 import { useState, useEffect, createContext, useContext, type ReactNode } from "react"
-import type { Appointment, TimeSlot, Doctor } from "@/lib/types"
+import type { Appointment, Doctor } from "@/lib/types"
 
 interface AppointmentsContextType {
   appointments: Appointment[]
-  addAppointment: (appointment: Appointment) => void
+  addAppointment: (appointment: Appointment) => boolean
   cancelAppointment: (id: string) => void
-  isTimeSlotBooked: (doctor: Doctor, timeSlot: TimeSlot) => boolean
-  getDoctorAvailability: (doctor: Doctor) => TimeSlot[]
+  isTimeSlotBooked: (doctor: Doctor, date: string, time: string) => boolean
+  getDoctorAvailability: (doctor: Doctor) => { date: string; slots: string[] }[]
   hasAvailableSlots: (doctor: Doctor) => boolean
+  getAvailableSlots: (doctor: Doctor, date: string) => string[]
 }
 
 const AppointmentsContext = createContext<AppointmentsContextType | undefined>(undefined)
@@ -23,12 +24,7 @@ export function AppointmentsProvider({ children }: { children: ReactNode }) {
     if (savedAppointments) {
       try {
         const parsed = JSON.parse(savedAppointments)
-        // Convert date strings back to Date objects
-        const appointments = parsed.map((app: any) => ({
-          ...app,
-          date: new Date(app.date),
-        }))
-        setAppointments(appointments)
+        setAppointments(parsed)
       } catch (error) {
         console.error("Failed to parse appointments:", error)
       }
@@ -42,7 +38,7 @@ export function AppointmentsProvider({ children }: { children: ReactNode }) {
 
   const addAppointment = (appointment: Appointment) => {
     // Verify this slot isn't already booked before adding
-    const isBooked = isTimeSlotBooked(appointment.doctor, appointment.timeSlot)
+    const isBooked = isTimeSlotBooked(appointment.doctor, appointment.date, appointment.time)
     if (isBooked) {
       console.error("This time slot is already booked")
       return false
@@ -56,21 +52,39 @@ export function AppointmentsProvider({ children }: { children: ReactNode }) {
     setAppointments((prev) => prev.filter((app) => app.id !== id))
   }
 
-  // Check if a time slot is already booked - only checking day and time, not specific date
-  const isTimeSlotBooked = (doctor: Doctor, timeSlot: TimeSlot) => {
-    return appointments.some(
-      (app) => app.doctor.id === doctor.id && app.timeSlot.day === timeSlot.day && app.timeSlot.time === timeSlot.time,
-    )
+  // Check if a time slot is already booked
+  const isTimeSlotBooked = (doctor: Doctor, date: string, time: string) => {
+    return appointments.some((app) => app.doctor.id === doctor.id && app.date === date && app.time === time)
   }
 
   // Get all available slots for a doctor after filtering out booked ones
   const getDoctorAvailability = (doctor: Doctor) => {
-    return doctor.availableSlots.filter((slot) => !isTimeSlotBooked(doctor, slot))
+    return doctor.availability
+      .map((availabilitySlot) => {
+        const availableSlots = availabilitySlot.slots.filter(
+          (time) => !isTimeSlotBooked(doctor, availabilitySlot.date, time),
+        )
+        return {
+          date: availabilitySlot.date,
+          slots: availableSlots,
+        }
+      })
+      .filter((slot) => slot.slots.length > 0)
+  }
+
+  // Get available slots for a specific date
+  const getAvailableSlots = (doctor: Doctor, date: string) => {
+    const availabilityForDate = doctor.availability.find((a) => a.date === date)
+    if (!availabilityForDate) return []
+
+    return availabilityForDate.slots.filter((time) => !isTimeSlotBooked(doctor, date, time))
   }
 
   // Check if a doctor has any available slots at all
   const hasAvailableSlots = (doctor: Doctor) => {
-    return doctor.availableSlots.some((slot) => !isTimeSlotBooked(doctor, slot))
+    return doctor.availability.some((availabilitySlot) =>
+      availabilitySlot.slots.some((time) => !isTimeSlotBooked(doctor, availabilitySlot.date, time)),
+    )
   }
 
   return (
@@ -82,6 +96,7 @@ export function AppointmentsProvider({ children }: { children: ReactNode }) {
         isTimeSlotBooked,
         getDoctorAvailability,
         hasAvailableSlots,
+        getAvailableSlots,
       }}
     >
       {children}

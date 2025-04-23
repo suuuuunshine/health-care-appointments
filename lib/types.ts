@@ -1,6 +1,10 @@
 export interface TimeSlot {
-  day: string
   time: string
+}
+
+export interface AvailabilitySlot {
+  date: string
+  slots: string[]
 }
 
 export interface Doctor {
@@ -10,12 +14,12 @@ export interface Doctor {
   specialty: string
   rating: number
   location: string
-  availableSlots: TimeSlot[]
+  availability: AvailabilitySlot[]
 }
 
 export interface Appointment {
   id: string
   doctor: Doctor
-  timeSlot: TimeSlot
-  date: Date
+  date: string
+  time: string
 }

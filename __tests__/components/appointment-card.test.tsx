@@ -12,10 +12,10 @@ describe("AppointmentCard", () => {
       specialty: "Cardiology",
       rating: 4.8,
       location: "Downtown Medical Center",
-      availableSlots: [],
+      availability: [],
     },
-    timeSlot: { day: "Wednesday", time: "2:00 PM" },
-    date: new Date(2025, 3, 21), // April 21, 2025
+    date: "2025-04-21",
+    time: "14:00",
   }
 
   const mockOnCancel = vi.fn()
@@ -29,8 +29,8 @@ describe("AppointmentCard", () => {
 
     expect(screen.getByText(`Appointment with Dr. ${mockAppointment.doctor.name}`)).toBeInTheDocument()
     expect(screen.getByText(mockAppointment.doctor.specialty)).toBeInTheDocument()
-    expect(screen.getByText(mockAppointment.timeSlot.day + ",", { exact: false })).toBeInTheDocument()
-    expect(screen.getByText(mockAppointment.timeSlot.time)).toBeInTheDocument()
+    expect(screen.getByText("Monday, April 21, 2025")).toBeInTheDocument()
+    expect(screen.getByText(mockAppointment.time)).toBeInTheDocument()
     expect(screen.getByText(mockAppointment.doctor.location)).toBeInTheDocument()
   })
 
@@ -39,11 +39,5 @@ describe("AppointmentCard", () => {
 
     fireEvent.click(screen.getByText("Cancel"))
     expect(mockOnCancel).toHaveBeenCalledTimes(1)
-  })
-
-  it("formats the date correctly", () => {
-    render(<AppointmentCard appointment={mockAppointment} onCancel={mockOnCancel} />)
-
-    expect(screen.getByText("April 21, 2025", { exact: false })).toBeInTheDocument()
   })
 })

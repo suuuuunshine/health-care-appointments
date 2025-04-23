@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import type { Doctor, TimeSlot } from "@/lib/types"
+import type { Doctor } from "@/lib/types"
 import { Calendar } from "@/components/ui/calendar"
-import { format } from "date-fns"
+import { format, parseISO, isValid, isBefore, startOfDay } from "date-fns"
 import { CalendarIcon, Clock, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { useAppointments } from "@/hooks/use-appointments"
@@ -14,135 +14,106 @@ interface BookingModalProps {
   isOpen: boolean
   onClose: () => void
   doctor: Doctor
-  onConfirm: (timeSlot: TimeSlot) => void
-  preSelectedTimeSlot?: TimeSlot
+  onConfirm: (date: string, time: string) => void
+  preSelectedDate?: string
+  preSelectedTime?: string
 }
 
-export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSelectedTimeSlot }: BookingModalProps) {
-  const [date, setDate] = useState<Date | undefined>(undefined)
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
+export default function BookingModal({
+  isOpen,
+  onClose,
+  doctor,
+  onConfirm,
+  preSelectedDate,
+  preSelectedTime,
+}: BookingModalProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const { isTimeSlotBooked, getDoctorAvailability } = useAppointments()
+  const { isTimeSlotBooked, hasAvailableSlots, getAvailableSlots } = useAppointments()
 
-  // Get all available slots for this doctor
-  const availableSlots = getDoctorAvailability(doctor)
+  // Check if doctor has any available slots
+  const doctorHasAvailability = hasAvailableSlots(doctor)
 
-  // Group available slots by day
-  const slotsByDay = doctor.availableSlots.reduce(
-    (acc, slot) => {
-      if (!acc[slot.day]) {
-        acc[slot.day] = []
+  // Find the next available date
+  const findNextAvailableDate = () => {
+    const today = new Date()
+
+    // If preSelectedDate is provided and valid, use it
+    if (preSelectedDate) {
+      const parsedDate = parseISO(preSelectedDate)
+      if (isValid(parsedDate) && !isBefore(parsedDate, today)) {
+        return parsedDate
       }
-      acc[slot.day].push(slot)
-      return acc
-    },
-    {} as Record<string, TimeSlot[]>,
-  )
+    }
 
-  // Find the next available date with open slots
-  const findNextAvailableDate = (startingFrom: Date = new Date(), targetDay?: string) => {
-    const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    const today = new Date(startingFrom)
-    today.setHours(0, 0, 0, 0)
-
-    // If we have a target day, find the next occurrence of that day
-    if (targetDay) {
-      const targetDayIndex = daysOfWeek.indexOf(targetDay)
-      if (targetDayIndex !== -1) {
-        const currentDayIndex = today.getDay()
-        const daysToAdd = (targetDayIndex - currentDayIndex + 7) % 7
-        const targetDate = new Date(today)
-        targetDate.setDate(today.getDate() + daysToAdd)
-
-        // Check if this day has available slots
-        const daySlots = slotsByDay[targetDay] || []
-        const availableSlots = daySlots.filter((slot) => !isTimeSlotBooked(doctor, slot))
-
+    // Otherwise find the first available date
+    for (const availabilitySlot of doctor.availability) {
+      const date = parseISO(availabilitySlot.date)
+      if (isValid(date) && !isBefore(date, today)) {
+        const availableSlots = getAvailableSlots(doctor, availabilitySlot.date)
         if (availableSlots.length > 0) {
-          return targetDate
+          return date
         }
       }
     }
 
-    // Otherwise, check the next 30 days for any available slot
-    for (let i = 0; i < 30; i++) {
-      const checkDate = new Date(today)
-      checkDate.setDate(today.getDate() + i)
-
-      const dayName = format(checkDate, "EEEE")
-      const daySlots = slotsByDay[dayName] || []
-
-      // Check if this day has available slots
-      const availableSlots = daySlots.filter((slot) => !isTimeSlotBooked(doctor, slot))
-
-      if (availableSlots.length > 0) {
-        return checkDate
-      }
-    }
-
-    // If no available slots found, return today
-    return today
+    return undefined
   }
 
   // Reset selected slot when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedSlot(null)
+      setSelectedTime(null)
       setError(null)
     } else {
       // When modal opens, find the next available date
-      if (preSelectedTimeSlot) {
-        // Check if the pre-selected time slot is still available
-        const isSlotAvailable = !isTimeSlotBooked(doctor, preSelectedTimeSlot)
+      const nextDate = findNextAvailableDate()
+      setSelectedDate(nextDate)
+
+      // If preSelectedDate and preSelectedTime are provided, check if they're still available
+      if (preSelectedDate && preSelectedTime) {
+        const isSlotAvailable = !isTimeSlotBooked(doctor, preSelectedDate, preSelectedTime)
 
         if (isSlotAvailable) {
-          // If a time slot is pre-selected and available, find the next occurrence of that day
-          const nextDate = findNextAvailableDate(new Date(), preSelectedTimeSlot.day)
-          setDate(nextDate)
-          setSelectedSlot(preSelectedTimeSlot)
+          setSelectedDate(parseISO(preSelectedDate))
+          setSelectedTime(preSelectedTime)
         } else {
-          // If pre-selected slot is no longer available, find any next available date
-          const nextDate = findNextAvailableDate()
-          setDate(nextDate)
           setError("The selected time slot is no longer available. Please choose another slot.")
         }
-      } else {
-        // Otherwise, find the next day with any available slot
-        const nextDate = findNextAvailableDate()
-        setDate(nextDate)
       }
     }
-  }, [isOpen, preSelectedTimeSlot, doctor])
+  }, [isOpen, preSelectedDate, preSelectedTime, doctor])
 
   // Get available slots for the selected date
   const getAvailableSlotsForDate = () => {
-    if (!date) return []
+    if (!selectedDate) return []
 
-    const dayName = format(date, "EEEE")
-    const slotsForDay = slotsByDay[dayName] || []
-
-    // Filter out already booked slots
-    return slotsForDay.filter((slot) => !isTimeSlotBooked(doctor, slot))
+    const dateString = format(selectedDate, "yyyy-MM-dd")
+    return getAvailableSlots(doctor, dateString)
   }
 
-  const slotsForSelectedDate = getAvailableSlotsForDate()
+  const availableSlots = getAvailableSlotsForDate()
 
   const handleConfirm = () => {
-    if (selectedSlot) {
+    if (selectedDate && selectedTime) {
+      const dateString = format(selectedDate, "yyyy-MM-dd")
+
       // Double-check that the slot is still available
-      if (!isTimeSlotBooked(doctor, selectedSlot)) {
-        onConfirm(selectedSlot)
+      if (!isTimeSlotBooked(doctor, dateString, selectedTime)) {
+        onConfirm(dateString, selectedTime)
         setError(null)
       } else {
         setError("This time slot was just booked. Please select another slot.")
-        // Refresh available slots
-        setSelectedSlot(null)
+        setSelectedTime(null)
       }
     }
   }
 
-  // Check if there are any available slots at all
-  const hasAnyAvailableSlots = availableSlots.length > 0
+  // Format date for display
+  const formatDateForDisplay = (date: Date) => {
+    return format(date, "MMMM d, yyyy")
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -161,7 +132,7 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
           </div>
         </div>
 
-        {!hasAnyAvailableSlots ? (
+        {!doctorHasAvailability ? (
           <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
             <div className="flex items-start">
               <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
@@ -185,27 +156,30 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
             </h4>
             <Calendar
               mode="single"
-              selected={date}
+              selected={selectedDate}
               onSelect={(newDate) => {
-                setDate(newDate)
-                setSelectedSlot(null) // Reset selected slot when date changes
+                setSelectedDate(newDate)
+                setSelectedTime(null) // Reset selected time when date changes
                 setError(null) // Clear any errors
               }}
               className="border rounded-md content-center"
               disabled={(date) => {
                 // Disable dates in the past
-                const today = new Date()
-                today.setHours(0, 0, 0, 0)
-                if (date < today) return true
+                const today = startOfDay(new Date())
+                if (isBefore(date, today)) return true
 
                 // Disable dates with no available slots
-                const dayName = format(date, "EEEE")
-                const slotsForDay = slotsByDay[dayName] || []
+                const dateString = format(date, "yyyy-MM-dd")
+                const availabilityForDate = doctor.availability.find((a) => a.date === dateString)
 
-                // Check if all slots for this day are already booked
-                if (slotsForDay.length === 0) return true
+                // If no slots for this date, disable it
+                if (!availabilityForDate) return true
 
-                const availableSlots = slotsForDay.filter((slot) => !isTimeSlotBooked(doctor, slot))
+                // Check if all slots for this date are already booked
+                const availableSlots = availabilityForDate.slots.filter(
+                  (time) => !isTimeSlotBooked(doctor, dateString, time),
+                )
+
                 return availableSlots.length === 0
               }}
             />
@@ -216,29 +190,29 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
               <Clock className="h-4 w-4 mr-1" />
               Available Time Slots
             </h4>
-            {slotsForSelectedDate.length > 0 ? (
+            {availableSlots.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
-                {slotsForSelectedDate.map((slot, index) => (
+                {availableSlots.map((time, index) => (
                   <button
                     key={index}
                     className={`p-2 text-sm rounded-md border transition-colors ${
-                      selectedSlot?.time === slot.time && selectedSlot?.day === slot.day
+                      selectedTime === time
                         ? "bg-teal-100 border-teal-300 text-teal-700"
                         : "border-gray-200 hover:border-teal-200"
                     }`}
                     onClick={() => {
-                      setSelectedSlot(slot)
+                      setSelectedTime(time)
                       setError(null) // Clear any errors when selecting a new slot
                     }}
                   >
-                    {slot.time}
+                    {time}
                   </button>
                 ))}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-500 text-sm">
-                  {date ? "No available slots for this date" : "Please select a date"}
+                  {selectedDate ? "No available slots for this date" : "Please select a date"}
                 </p>
               </div>
             )}
@@ -251,7 +225,7 @@ export default function BookingModal({ isOpen, onClose, doctor, onConfirm, preSe
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={!selectedSlot || !hasAnyAvailableSlots}
+            disabled={!selectedTime || !selectedDate || !doctorHasAvailability}
             className="bg-teal-500 hover:bg-teal-600 text-white"
           >
             Confirm Booking

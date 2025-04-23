@@ -20,11 +20,10 @@ export const doctors: Doctor[] = [
     specialty: "Cardiology",
     rating: 4.8,
     location: "Downtown Medical Center",
-    availableSlots: [
-      { day: "Monday", time: "9:00 AM" },
-      { day: "Monday", time: "11:30 AM" },
-      { day: "Wednesday", time: "2:00 PM" },
-      { day: "Friday", time: "10:00 AM" },
+    availability: [
+      { date: "2025-04-21", slots: ["09:00", "11:30"] },
+      { date: "2025-04-23", slots: ["14:00"] },
+      { date: "2025-04-25", slots: ["10:00"] },
     ],
   },
   {
@@ -34,10 +33,9 @@ export const doctors: Doctor[] = [
     specialty: "Dermatology",
     rating: 4.9,
     location: "Westside Health Clinic",
-    availableSlots: [
-      { day: "Tuesday", time: "8:30 AM" },
-      { day: "Tuesday", time: "1:00 PM" },
-      { day: "Thursday", time: "3:30 PM" },
+    availability: [
+      { date: "2025-04-22", slots: ["08:30", "13:00"] },
+      { date: "2025-04-24", slots: ["15:30"] },
     ],
   },
   {
@@ -48,11 +46,10 @@ export const doctors: Doctor[] = [
     specialty: "Pediatrics",
     rating: 4.7,
     location: "Children's Medical Center",
-    availableSlots: [
-      { day: "Monday", time: "10:00 AM" },
-      { day: "Wednesday", time: "9:30 AM" },
-      { day: "Wednesday", time: "2:30 PM" },
-      { day: "Friday", time: "11:00 AM" },
+    availability: [
+      { date: "2025-04-21", slots: ["10:00"] },
+      { date: "2025-04-23", slots: ["09:30", "14:30"] },
+      { date: "2025-04-25", slots: ["11:00"] },
     ],
   },
   {
@@ -62,10 +59,9 @@ export const doctors: Doctor[] = [
     specialty: "Orthopedics",
     rating: 4.6,
     location: "Sports Medicine Clinic",
-    availableSlots: [
-      { day: "Tuesday", time: "11:00 AM" },
-      { day: "Thursday", time: "9:00 AM" },
-      { day: "Thursday", time: "4:00 PM" },
+    availability: [
+      { date: "2025-04-22", slots: ["11:00"] },
+      { date: "2025-04-24", slots: ["09:00", "16:00"] },
     ],
   },
   {
@@ -75,10 +71,10 @@ export const doctors: Doctor[] = [
     specialty: "Neurology",
     rating: 4.9,
     location: "Neuroscience Institute",
-    availableSlots: [
-      { day: "Monday", time: "2:00 PM" },
-      { day: "Wednesday", time: "10:30 AM" },
-      { day: "Friday", time: "1:30 PM" },
+    availability: [
+      { date: "2025-04-21", slots: ["14:00"] },
+      { date: "2025-04-23", slots: ["10:30"] },
+      { date: "2025-04-25", slots: ["13:30"] },
     ],
   },
   {
@@ -88,10 +84,9 @@ export const doctors: Doctor[] = [
     specialty: "Psychiatry",
     rating: 4.7,
     location: "Behavioral Health Center",
-    availableSlots: [
-      { day: "Tuesday", time: "9:30 AM" },
-      { day: "Tuesday", time: "3:00 PM" },
-      { day: "Thursday", time: "1:00 PM" },
+    availability: [
+      { date: "2025-04-22", slots: ["09:30", "15:00"] },
+      { date: "2025-04-24", slots: ["13:00"] },
     ],
   },
   {
@@ -101,10 +96,10 @@ export const doctors: Doctor[] = [
     specialty: "Ophthalmology",
     rating: 4.8,
     location: "Vision Care Center",
-    availableSlots: [
-      { day: "Monday", time: "8:30 AM" },
-      { day: "Wednesday", time: "1:00 PM" },
-      { day: "Friday", time: "9:00 AM" },
+    availability: [
+      { date: "2025-04-21", slots: ["08:30"] },
+      { date: "2025-04-23", slots: ["13:00"] },
+      { date: "2025-04-25", slots: ["09:00"] },
     ],
   },
   {
@@ -114,10 +109,9 @@ export const doctors: Doctor[] = [
     specialty: "Gynecology",
     rating: 4.6,
     location: "Women's Health Clinic",
-    availableSlots: [
-      { day: "Tuesday", time: "10:00 AM" },
-      { day: "Thursday", time: "2:30 PM" },
-      { day: "Thursday", time: "4:30 PM" },
+    availability: [
+      { date: "2025-04-22", slots: ["10:00"] },
+      { date: "2025-04-24", slots: ["14:30", "16:30"] },
     ],
   },
   {
@@ -127,6 +121,6 @@ export const doctors: Doctor[] = [
     specialty: "Cardiology",
     rating: 4.5,
     location: "Heart & Vascular Institute",
-    availableSlots: [],
+    availability: [],
   },
 ]

@@ -43,10 +43,9 @@ describe("BookingModal", () => {
     specialty: "Cardiology",
     rating: 4.8,
     location: "Downtown Medical Center",
-    availableSlots: [
-      { day: "Monday", time: "9:00 AM" },
-      { day: "Wednesday", time: "2:00 PM" },
-      { day: "Friday", time: "10:00 AM" },
+    availability: [
+      { date: "2025-04-21", slots: ["09:00", "11:30"] },
+      { date: "2025-04-23", slots: ["14:00"] },
     ],
   }
 
@@ -59,12 +58,14 @@ describe("BookingModal", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(useAppointments as jest.Mock).mockReturnValue({
+    ;(useAppointments as vi.Mock).mockReturnValue({
       isTimeSlotBooked: () => false,
+      hasAvailableSlots: () => true,
+      getAvailableSlots: () => ["09:00", "11:30"],
     })
 
     // Mock Date.now and new Date
-    const mockDate = new Date(2025, 3, 21) // April 21, 2025 (a Monday)
+    const mockDate = new Date(2025, 3, 21) // April 21, 2025
     vi.spyOn(global, "Date").mockImplementation(() => mockDate as any)
   })
 
@@ -107,15 +108,15 @@ describe("BookingModal", () => {
     const selectDateButton = screen.getByText("Select Date")
     fireEvent.click(selectDateButton)
 
-    // Then, select a time slot (Monday is the selected date)
-    const mondaySlot = screen.getByText("9:00 AM")
-    fireEvent.click(mondaySlot)
+    // Then, select a time slot
+    const timeSlot = screen.getByText("09:00")
+    fireEvent.click(timeSlot)
 
     const confirmButton = screen.getByText("Confirm Booking")
     expect(confirmButton).not.toBeDisabled()
   })
 
-  it("calls onConfirm with the selected slot when Confirm is clicked", () => {
+  it("calls onConfirm with the selected date and time when Confirm is clicked", () => {
     render(<BookingModal {...mockProps} />)
 
     // Select a date
@@ -123,45 +124,41 @@ describe("BookingModal", () => {
     fireEvent.click(selectDateButton)
 
     // Select a time slot
-    const mondaySlot = screen.getByText("9:00 AM")
-    fireEvent.click(mondaySlot)
+    const timeSlot = screen.getByText("09:00")
+    fireEvent.click(timeSlot)
 
     // Click confirm
     const confirmButton = screen.getByText("Confirm Booking")
     fireEvent.click(confirmButton)
 
     expect(mockProps.onConfirm).toHaveBeenCalledTimes(1)
-    expect(mockProps.onConfirm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        day: "Monday",
-        time: "9:00 AM",
-      }),
-    )
+    expect(mockProps.onConfirm).toHaveBeenCalledWith("2025-04-21", "09:00")
   })
 
   it("pre-selects a time slot when provided", () => {
-    const preSelectedTimeSlot = { day: "Wednesday", time: "2:00 PM" }
-    render(<BookingModal {...mockProps} preSelectedTimeSlot={preSelectedTimeSlot} />)
+    render(<BookingModal {...mockProps} preSelectedDate="2025-04-21" preSelectedTime="09:00" />)
 
-    // The Wednesday slot should be pre-selected
-    expect(screen.getByText("2:00 PM")).toHaveClass("bg-teal-100")
+    // The time slot should be pre-selected
+    expect(screen.getByText("09:00")).toHaveClass("bg-teal-100")
   })
 
   it("filters out booked slots", () => {
-    ;(useAppointments as jest.Mock).mockReturnValue({
-      isTimeSlotBooked: (doctor: any, slot: any) => slot.day === "Monday",
+    ;(useAppointments as vi.Mock).mockReturnValue({
+      isTimeSlotBooked: (doctor: any, date: string, time: string) => time === "09:00",
+      hasAvailableSlots: () => true,
+      getAvailableSlots: () => ["11:30"],
     })
 
     render(<BookingModal {...mockProps} />)
 
-    // Select a date (Wednesday)
+    // Select a date
     const selectDateButton = screen.getByText("Select Date")
     fireEvent.click(selectDateButton)
 
-    // Monday slot should be filtered out
-    expect(screen.queryByText("9:00 AM")).not.toBeInTheDocument()
+    // 09:00 slot should be filtered out
+    expect(screen.queryByText("09:00")).not.toBeInTheDocument()
 
-    // Wednesday slot should be visible
-    expect(screen.getByText("2:00 PM")).toBeInTheDocument()
+    // 11:30 slot should be visible
+    expect(screen.getByText("11:30")).toBeInTheDocument()
   })
 })

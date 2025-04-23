@@ -5,22 +5,24 @@ import { doctors } from "@/lib/data"
 import DoctorCard from "@/components/doctor-card"
 import FilterBar from "@/components/filter-bar"
 import BookingModal from "@/components/booking-modal"
-import type { Doctor, TimeSlot } from "@/lib/types"
+import type { Doctor } from "@/lib/types"
 import { useAppointments } from "@/hooks/use-appointments"
 import Link from "next/link"
 import { CalendarCheck2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { format } from "date-fns"
 
 export default function Home() {
   const [specialty, setSpecialty] = useState<string>("all")
   const [availability, setAvailability] = useState<string>("all")
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | undefined>(undefined)
+  const [preSelectedDate, setPreSelectedDate] = useState<string | undefined>(undefined)
+  const [preSelectedTime, setPreSelectedTime] = useState<string | undefined>(undefined)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const { addAppointment, hasAvailableSlots } = useAppointments()
   const { toast } = useToast()
 
-  const handleBooking = (doctor: Doctor, timeSlot?: TimeSlot) => {
+  const handleBooking = (doctor: Doctor, date?: string, time?: string) => {
     // Check if doctor has any available slots before opening modal
     if (!hasAvailableSlots(doctor)) {
       toast({
@@ -32,17 +34,18 @@ export default function Home() {
     }
 
     setSelectedDoctor(doctor)
-    setSelectedTimeSlot(timeSlot)
+    setPreSelectedDate(date)
+    setPreSelectedTime(time)
     setIsModalOpen(true)
   }
 
-  const handleConfirmBooking = (timeSlot: TimeSlot) => {
+  const handleConfirmBooking = (date: string, time: string) => {
     if (selectedDoctor) {
       const appointment = {
         id: `appointment-${Date.now()}`,
         doctor: selectedDoctor,
-        timeSlot,
-        date: new Date(),
+        date,
+        time,
       }
 
       const success = addAppointment(appointment)
@@ -50,7 +53,7 @@ export default function Home() {
       if (success) {
         toast({
           title: "Appointment Booked",
-          description: `Your appointment with Dr. ${selectedDoctor.name} on ${timeSlot.day} at ${timeSlot.time} has been confirmed.`,
+          description: `Your appointment with Dr. ${selectedDoctor.name} on ${format(new Date(date), "MMMM d, yyyy")} at ${time} has been confirmed.`,
         })
       } else {
         toast({
@@ -108,7 +111,7 @@ export default function Home() {
             <DoctorCard
               key={doctor.id}
               doctor={doctor}
-              onBookAppointment={(timeSlot) => handleBooking(doctor, timeSlot)}
+              onBookAppointment={(date, time) => handleBooking(doctor, date, time)}
             />
           ))}
         </div>
@@ -119,11 +122,13 @@ export default function Home() {
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false)
-            setSelectedTimeSlot(undefined)
+            setPreSelectedDate(undefined)
+            setPreSelectedTime(undefined)
           }}
           doctor={selectedDoctor}
           onConfirm={handleConfirmBooking}
-          preSelectedTimeSlot={selectedTimeSlot}
+          preSelectedDate={preSelectedDate}
+          preSelectedTime={preSelectedTime}
         />
       )}
     </main>

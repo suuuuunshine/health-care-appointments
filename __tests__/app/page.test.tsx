@@ -12,6 +12,7 @@ vi.mock("@/components/doctor-card", () => ({
     <div data-testid={`doctor-card-${doctor.id}`}>
       <h2>Dr. {doctor.name}</h2>
       <button onClick={() => onBookAppointment()}>Book</button>
+      <button onClick={() => onBookAppointment("2025-04-21", "09:00")}>Book Specific Slot</button>
     </div>
   ),
 }))
@@ -36,11 +37,13 @@ vi.mock("@/components/filter-bar", () => ({
 }))
 
 vi.mock("@/components/booking-modal", () => ({
-  default: ({ isOpen, onClose, doctor, onConfirm }: any) =>
+  default: ({ isOpen, onClose, doctor, onConfirm, preSelectedDate, preSelectedTime }: any) =>
     isOpen ? (
       <div data-testid="booking-modal">
         <h2>Book with Dr. {doctor.name}</h2>
-        <button onClick={() => onConfirm({ day: "Monday", time: "9:00 AM" })}>Confirm</button>
+        <p>Selected Date: {preSelectedDate || "None"}</p>
+        <p>Selected Time: {preSelectedTime || "None"}</p>
+        <button onClick={() => onConfirm("2025-04-21", "09:00")}>Confirm</button>
         <button onClick={onClose}>Close</button>
       </div>
     ) : null,
@@ -58,12 +61,18 @@ vi.mock("next/link", () => ({
   ),
 }))
 
+vi.mock("@/components/ui/use-toast", () => ({
+  useToast: () => ({
+    toast: vi.fn(),
+  }),
+}))
+
 describe("Home Page", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ;(useAppointments as jest.Mock).mockReturnValue({
-      addAppointment: vi.fn(),
-      isTimeSlotBooked: () => false,
+      addAppointment: vi.fn(() => true),
+      hasAvailableSlots: () => true,
     })
   })
 
@@ -98,6 +107,18 @@ describe("Home Page", () => {
     expect(screen.getByText(`Book with Dr. ${doctors[0].name}`)).toBeInTheDocument()
   })
 
+  it("opens the booking modal with pre-selected date and time", () => {
+    render(<Home />)
+
+    // Click on the first doctor's specific slot button
+    fireEvent.click(screen.getAllByText("Book Specific Slot")[0])
+
+    // Modal should be visible with pre-selected date and time
+    expect(screen.getByTestId("booking-modal")).toBeInTheDocument()
+    expect(screen.getByText("Selected Date: 2025-04-21")).toBeInTheDocument()
+    expect(screen.getByText("Selected Time: 09:00")).toBeInTheDocument()
+  })
+
   it("closes the booking modal", () => {
     render(<Home />)
 
@@ -111,10 +132,10 @@ describe("Home Page", () => {
   })
 
   it("adds an appointment when booking is confirmed", () => {
-    const mockAddAppointment = vi.fn()
+    const mockAddAppointment = vi.fn(() => true)
     ;(useAppointments as jest.Mock).mockReturnValue({
       addAppointment: mockAddAppointment,
-      isTimeSlotBooked: () => false,
+      hasAvailableSlots: () => true,
     })
 
     render(<Home />)
@@ -130,7 +151,8 @@ describe("Home Page", () => {
     expect(mockAddAppointment).toHaveBeenCalledWith(
       expect.objectContaining({
         doctor: doctors[0],
-        timeSlot: { day: "Monday", time: "9:00 AM" },
+        date: "2025-04-21",
+        time: "09:00",
       }),
     )
 
@@ -163,10 +185,10 @@ describe("Home Page", () => {
   })
 
   it("filters doctors by availability", () => {
-    // Mock some doctors as having no available slots after booking
+    // Mock some doctors as having no available slots
     ;(useAppointments as jest.Mock).mockReturnValue({
-      addAppointment: vi.fn(),
-      isTimeSlotBooked: (doctor: any, slot: any) => doctor.id === "doctor-1",
+      addAppointment: vi.fn(() => true),
+      hasAvailableSlots: (doctor: any) => doctor.id !== "doctor-1",
     })
 
     render(<Home />)
@@ -174,7 +196,7 @@ describe("Home Page", () => {
     // Filter by available
     fireEvent.change(screen.getByTestId("availability-select"), { target: { value: "available" } })
 
-    // Doctor-1 should not be visible (all slots booked)
+    // Doctor-1 should not be visible (no available slots)
     expect(screen.queryByText(`Dr. ${doctors[0].name}`)).not.toBeInTheDocument()
 
     // Other doctors should be visible
@@ -187,7 +209,7 @@ describe("Home Page", () => {
     // Mock all doctors as having no available slots
     ;(useAppointments as jest.Mock).mockReturnValue({
       addAppointment: vi.fn(),
-      isTimeSlotBooked: () => true,
+      hasAvailableSlots: () => false,
     })
 
     render(<Home />)

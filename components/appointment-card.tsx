@@ -4,7 +4,7 @@ import type { Appointment } from "@/lib/types"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin } from "lucide-react"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import Image from "next/image"
 
 interface AppointmentCardProps {
@@ -13,7 +13,10 @@ interface AppointmentCardProps {
 }
 
 export default function AppointmentCard({ appointment, onCancel }: AppointmentCardProps) {
-  const { doctor, timeSlot, date } = appointment
+  const { doctor, date, time } = appointment
+
+  // Format date for display
+  const formattedDate = format(parseISO(date), "EEEE, MMMM d, yyyy")
 
   return (
     <Card className="overflow-hidden">
@@ -30,13 +33,11 @@ export default function AppointmentCard({ appointment, onCancel }: AppointmentCa
           <div>
             <div className="flex items-center text-gray-700 mb-2">
               <Calendar className="h-4 w-4 mr-2" aria-hidden="true" />
-              <span className="text-sm">
-                {timeSlot.day}, {format(date, "MMMM d, yyyy")}
-              </span>
+              <span className="text-sm">{formattedDate}</span>
             </div>
             <div className="flex items-center text-gray-700 mb-2">
               <Clock className="h-4 w-4 mr-2" aria-hidden="true" />
-              <span className="text-sm">{timeSlot.time}</span>
+              <span className="text-sm">{time}</span>
             </div>
             <div className="flex items-center text-gray-700">
               <MapPin className="h-4 w-4 mr-2" aria-hidden="true" />
